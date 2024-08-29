@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Headers } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -32,11 +32,14 @@ export class AuthController {
   })
   @ApiBadRequestResponse({
     description:
-      'Solicitud inválida. Posibles causas:\n- Faltan parámetros requeridos (apikey, encryptedUsername, encryptedPassword)\n- Parámetros con formato incorrecto (Base64 no válido)',
+      'Solicitud inválida. Posibles causas:\n- Faltan parámetros requeridos (encryptedUsername, encryptedPassword)\n- Parámetros con formato incorrecto (Base64 no válido)',
   })
-  async login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
+  async login(
+    @Headers('x-api-key') apikey: string,
+    @Body() loginDto: LoginDto,
+  ): Promise<LoginResponseDto> {
     try {
-      const { apikey, encryptedUsername, encryptedPassword } = loginDto;
+      const { encryptedUsername, encryptedPassword } = loginDto;
       return await this.authService.login(
         apikey,
         encryptedUsername,
@@ -64,11 +67,14 @@ export class AuthController {
   })
   @ApiBadRequestResponse({
     description:
-      'Solicitud inválida. Posibles causas:\n- Faltan parámetros requeridos (apikey)\n- Parámetros con formato incorrecto',
+      'Solicitud inválida. Posibles causas:\n- Parámetros con formato incorrecto',
   })
-  async signup(@Body() signupDto: SignupDto): Promise<LoginResponseDto> {
+  async signup(
+    @Headers('x-api-key') apikey: string,
+    @Body() signupDto: SignupDto,
+  ): Promise<LoginResponseDto> {
     try {
-      return await this.authService.signup(signupDto.apikey);
+      return await this.authService.signup(apikey);
     } catch (error) {
       handleException(error, {
         unauthorized: 'Fallo en el registro. Verifique su API key.',
@@ -86,17 +92,18 @@ export class AuthController {
   })
   @ApiBadRequestResponse({
     description:
-      'Solicitud inválida. Posibles causas:\n- Faltan parámetros requeridos (apikey)\n- Error al generar las claves RSA',
+      'Solicitud inválida. Posibles causas:\n- Error al generar las claves RSA',
   })
   @ApiUnauthorizedResponse({
     description:
       'Fallo en la creación del par de claves. Posibles causas:\n- API key inválida o inactiva',
   })
   async createKeyPair(
+    @Headers('x-api-key') apikey: string,
     @Body() createKeyPairDto: CreateKeyPairDto,
   ): Promise<KeyPairResponseDto> {
     try {
-      return await this.authService.createKeyPair(createKeyPairDto.apikey);
+      return await this.authService.createKeyPair(apikey);
     } catch (error) {
       handleException(error, {
         unauthorized:

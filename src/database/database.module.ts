@@ -26,7 +26,7 @@ import { KeyPair } from 'src/auth/entities/key-pair/key-pair';
           database: configService.get<string>('DB_DATABASE'),
           entities: [KeyPair],
           synchronize: true, // No usar en producción
-          logging: true,
+          logging: false,
         };
       },
       inject: [ConfigService],

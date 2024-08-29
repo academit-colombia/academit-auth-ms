@@ -2,13 +2,6 @@ import { IsString, IsNotEmpty, IsBase64 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class LoginDto {
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty({
-    description: 'API key asociada con el usuario',
-    example: 'example-api-key',
-  })
-  apikey: string;
 
   @IsBase64()
   @IsNotEmpty()

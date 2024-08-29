@@ -42,6 +42,8 @@ export class AuthService {
     }
 
     try {
+      this.logger.debug(`Clave privada utilizada: ${keyPair.privateKey}`);
+
       const username = this.encryptionService.decrypt(
         encryptedUsername,
         keyPair.privateKey,
@@ -59,6 +61,7 @@ export class AuthService {
       const token = this.jwtService.sign(payload);
       return new LoginResponseDto(token);
     } catch (error) {
+      this.logger.error(`Error en login: ${error.message}`);
       if (error instanceof UnauthorizedException) {
         this.logger.warn(`Credenciales incorrectas para la API key: ${apikey}`);
         throw error;
