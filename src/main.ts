@@ -7,7 +7,9 @@ import { HttpExceptionFilter } from './common/exception/http-exception.filter';
 import { TransactionIdMiddleware } from './common/middleware/transaction-id.middleware';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // El panel de administración corre en otro origen (localhost:3002),
+  // así que el navegador exige CORS para poder llamar al login.
+  const app = await NestFactory.create(AppModule, { cors: true });
   const logger = new Logger('Bootstrap');
   const configService = app.get(ConfigService);
 

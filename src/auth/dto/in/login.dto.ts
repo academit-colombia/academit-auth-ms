@@ -1,21 +1,17 @@
-import { IsString, IsNotEmpty, IsBase64 } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class LoginDto {
-
-  @IsBase64()
+  @IsEmail({}, { message: 'El email no tiene un formato válido' })
   @IsNotEmpty()
   @ApiProperty({
-    description: 'Nombre de usuario encriptado en Base64',
-    example: 'QWxhZGRpbjpvcGVuIHNlc2FtZQ==',
+    description: 'Email del usuario',
+    example: 'admin@academit.com.co',
   })
-  encryptedUsername: string;
+  email: string;
 
-  @IsBase64()
+  @IsString()
   @IsNotEmpty()
-  @ApiProperty({
-    description: 'Contraseña encriptada en Base64',
-    example: 'QWxhZGRpbjpvcGVuIHNlc2FtZQ==',
-  })
-  encryptedPassword: string;
+  @ApiProperty({ description: 'Contraseña del usuario', example: 'secreta123' })
+  password: string;
 }

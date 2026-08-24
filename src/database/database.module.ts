@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { KeyPair } from 'src/auth/entities/key-pair/key-pair';
+import { Usuario } from 'src/auth/entities/usuario/usuario.entity';
+import { CodigoVerificacion } from 'src/auth/entities/codigo/codigo-verificacion.entity';
 
 @Module({
   imports: [
@@ -24,7 +26,7 @@ import { KeyPair } from 'src/auth/entities/key-pair/key-pair';
             ? configService.get<string>('DB_PASSWORD')
             : undefined,
           database: configService.get<string>('DB_DATABASE'),
-          entities: [KeyPair],
+          entities: [KeyPair, Usuario, CodigoVerificacion],
           synchronize: true, // No usar en producción
           logging: false,
         };

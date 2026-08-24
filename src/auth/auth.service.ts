@@ -8,7 +8,10 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { EncryptionService } from './encryption/encryption.service';
+import { UsuariosService } from './usuarios.service';
+import { JwtPayload } from './roles.enum';
+import { UsuarioResponseDto } from './dto/out/usuario.response.dto';
+import { Usuario } from './entities/usuario/usuario.entity';
 import { KeyPair } from './entities/key-pair/key-pair';
 import { generateKeyPairSync } from 'crypto';
 import { KeyPairResponseDto } from './dto/out/key-pair.response.dto';
@@ -20,77 +23,56 @@ export class AuthService {
 
   constructor(
     private jwtService: JwtService,
-    private encryptionService: EncryptionService,
+    private usuariosService: UsuariosService,
     @InjectRepository(KeyPair)
     private keyPairRepository: Repository<KeyPair>,
   ) {}
 
-  async login(
-    apikey: string,
-    encryptedUsername: string,
-    encryptedPassword: string,
-  ): Promise<LoginResponseDto> {
-    this.logger.debug(`Intentando iniciar sesión con la API key: ${apikey}`);
+  /**
+   * Valida email y contraseña contra la tabla de usuarios y emite un JWT que
+   * lleva el rol. Ese token es el que `griselda-backend` verifica con el mismo
+   * `JWT_SECRET` para autorizar sus endpoints.
+   */
+  async login(email: string, password: string): Promise<LoginResponseDto> {
+    this.logger.debug(`Intento de inicio de sesión para: ${email}`);
 
-    const keyPair = await this.keyPairRepository.findOne({ where: { apikey } });
+    const usuario = await this.usuariosService.validarCredenciales(
+      email,
+      password,
+    );
 
-    if (!keyPair || !keyPair.isActive) {
-      this.logger.warn(
-        `Intento de inicio de sesión fallido: API key inválida o inactiva: ${apikey}`,
-      );
-      throw new UnauthorizedException('API key inválida o inactiva');
-    }
+    const payload: JwtPayload = {
+      sub: usuario.idUsuario,
+      email: usuario.email,
+      nombre: usuario.nombre,
+      rol: usuario.rol,
+    };
 
-    try {
-      this.logger.debug(`Clave privada utilizada: ${keyPair.privateKey}`);
+    this.logger.log(
+      `Inicio de sesión exitoso: ${usuario.email} (rol ${usuario.rol})`,
+    );
 
-      const username = this.encryptionService.decrypt(
-        encryptedUsername,
-        keyPair.privateKey,
-      );
-      const password = this.encryptionService.decrypt(
-        encryptedPassword,
-        keyPair.privateKey,
-      );
-
-      this.logger.log(
-        `Inicio de sesión exitoso para la API key: ${apikey}, usuario: ${username}`,
-      );
-
-      const payload = { apikey, username };
-      const token = this.jwtService.sign(payload);
-      return new LoginResponseDto(token);
-    } catch (error) {
-      this.logger.error(`Error en login: ${error.message}`);
-      if (error instanceof UnauthorizedException) {
-        this.logger.warn(`Credenciales incorrectas para la API key: ${apikey}`);
-        throw error;
-      } else {
-        this.logger.error(
-          `Error interno al procesar la autenticación para la API key: ${apikey}`,
-          error.stack,
-        );
-        await this.handleFailedAttempt(keyPair);
-        throw new InternalServerErrorException(
-          'Error al procesar la autenticación',
-        );
-      }
-    }
+    return this.emitirSesion(usuario);
   }
 
-  async signup(apikey: string): Promise<LoginResponseDto> {
-    this.logger.debug(
-      `Intentando registrar un nuevo usuario con la API key: ${apikey}`,
+  /**
+   * Emite la sesión de un usuario ya autenticado por otra vía.
+   *
+   * Lo usa la verificación por código: quien acaba de confirmar su email ya
+   * demostró quién es, así que volver a pedirle la contraseña sobra.
+   */
+  emitirSesion(usuario: Usuario): LoginResponseDto {
+    const payload: JwtPayload = {
+      sub: usuario.idUsuario,
+      email: usuario.email,
+      nombre: usuario.nombre,
+      rol: usuario.rol,
+    };
+
+    return new LoginResponseDto(
+      this.jwtService.sign(payload),
+      new UsuarioResponseDto(usuario),
     );
-    try {
-      return this.login(apikey, '', '');
-    } catch (error) {
-      this.logger.error(
-        `Error durante el proceso de registro con la API key: ${apikey}`,
-        error.stack,
-      );
-      throw new BadRequestException('Error durante el proceso de registro');
-    }
   }
 
   async createKeyPair(apikey: string): Promise<KeyPairResponseDto> {
@@ -129,32 +111,6 @@ export class AuthService {
       );
       throw new InternalServerErrorException(
         'Error al generar el par de claves RSA',
-      );
-    }
-  }
-
-  private async handleFailedAttempt(keyPair: KeyPair): Promise<void> {
-    keyPair.failedAttempts += 1;
-    this.logger.warn(
-      `Intento fallido incrementado para la API key: ${keyPair.apikey}, total de intentos: ${keyPair.failedAttempts}`,
-    );
-
-    if (keyPair.failedAttempts >= 3) {
-      keyPair.isActive = false;
-      this.logger.warn(
-        `La API key: ${keyPair.apikey} ha sido desactivada después de 3 intentos fallidos`,
-      );
-    }
-
-    try {
-      await this.keyPairRepository.save(keyPair);
-    } catch (error) {
-      this.logger.error(
-        `Error al actualizar los intentos fallidos para la API key: ${keyPair.apikey}`,
-        error.stack,
-      );
-      throw new InternalServerErrorException(
-        'Error al actualizar el estado de la API key',
       );
     }
   }
