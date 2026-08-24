@@ -1,0 +1,39 @@
+name: Avisar despliegue
+
+# Al etiquetar main con vX.Y.Z, avisa al repositorio de infraestructura, que es
+# quien compila las imágenes y despliega.
+#
+# Aquí no se compila nada: la imagen `web` necesita los dos frontends a la vez,
+# así que centralizar el proceso evita que cada proyecto sepa cómo se ensambla
+# el conjunto.
+on:
+  push:
+    tags: ['v*.*.*']
+
+jobs:
+  avisar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Comprobar que el tag está en main
+        run: |
+          # Un tag sobre una rama de trabajo no debe llegar a producción.
+          if ! git branch -r --contains "${{ github.ref_name }}" | grep -qE 'origin/main$'; then
+            echo "El tag ${{ github.ref_name }} no está en main. No se despliega." >&2
+            echo "Fusiona en main y vuelve a etiquetar." >&2
+            exit 1
+          fi
+          echo "${{ github.ref_name }} está en main."
+
+      - name: Avisar a academit-infra
+        env:
+          GH_TOKEN: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository_owner }}/academit-infra/dispatches" \
+            -f event_type=desplegar \
+            -F "client_payload[version]=${{ github.ref_name }}" \
+            -F "client_payload[origen]=${{ github.repository }}"
+          echo "Aviso enviado con la versión ${{ github.ref_name }}."
