@@ -1,0 +1,56 @@
+name: Construir imagen
+
+# Cada backend compila y publica su propia imagen.
+#
+# Se hace aquí y no en academit-infra porque así basta con el GITHUB_TOKEN
+# automático del repositorio: no hace falta ninguna clave ni token cruzado para
+# leer este código desde fuera. La imagen `web` sí se ensambla en infra, porque
+# necesita los dos frontends a la vez.
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Etiqueta a publicar (vX.Y.Z)'
+        required: true
+        type: string
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - id: v
+        run: |
+          v="${{ github.event.inputs.version || github.ref_name }}"
+          if [[ ! "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Versión no válida: '$v'" >&2
+            exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.v.outputs.version }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compilar y publicar
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ steps.v.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
