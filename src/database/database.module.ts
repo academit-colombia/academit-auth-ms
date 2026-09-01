@@ -27,7 +27,36 @@ import { CodigoVerificacion } from 'src/auth/entities/codigo/codigo-verificacion
             : undefined,
           database: configService.get<string>('DB_DATABASE'),
           entities: [KeyPair, Usuario, CodigoVerificacion],
-          synchronize: true, // No usar en producción
+          /*
+           * Contra MySQL —producción— apagado: el esquema lo construyen las
+           * migraciones de src/migrations/, que el entrypoint aplica al arrancar
+           * el contenedor.
+           *
+           * Estuvo en `true` con un comentario que decía «No usar en
+           * producción», y se usaba en producción. Con él, TypeORM ejecutaba en
+           * cada arranque los `ALTER` que le parecieran para que la base se
+           * pareciese a las entidades, sin que nadie los revisara. Sobre la base
+           * que guarda las cuentas y sin copias de seguridad automáticas.
+           *
+           * El caso destructivo está comprobado, no supuesto: quitando la
+           * propiedad `biografia` de la entidad y arrancando, la columna y su
+           * contenido desaparecían de la base. Basta un merge que se lleve unas
+           * líneas por delante. (Renombrar, en cambio, resultó ser seguro:
+           * TypeORM empareja la columna que sobra con la que falta y emite un
+           * `CHANGE COLUMN`. Pero solo acierta cuando el emparejamiento es
+           * inequívoco.)
+           *
+           * Va atado al dialecto y no a una variable de entorno a propósito: una
+           * variable sería el mismo agujero con un interruptor que alguien puede
+           * poner a `true` en el servidor.
+           *
+           * En SQLite se deja encendido porque ahí el esquema se recrea de cero
+           * en cada arranque y no hay ningún dato que perder; las migraciones son
+           * SQL de MySQL y no correrían. Nota: hoy esa rama no arranca de todos
+           * modos —`Usuario.rol` es un `enum`, que SQLite no soporta—, cosa que
+           * ya pasaba antes de este cambio.
+           */
+          synchronize: !isMySQL,
           logging: false,
         };
       },

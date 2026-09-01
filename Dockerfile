@@ -15,5 +15,8 @@ RUN npm run build
 # Puerto en el que escucha la app (ver PORT en src/main.ts)
 EXPOSE 3000
 
-# Ejecuta el build ya compilado en dist/, no el CLI de Nest en modo dev
-CMD ["npm", "run", "start:prod"]
+# El arranque pasa por entrypoint.sh, que aplica las migraciones pendientes
+# antes de levantar la aplicación: desde que `synchronize` está apagado contra
+# MySQL, es lo único que mantiene el esquema al día.
+RUN chmod +x ./entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]
