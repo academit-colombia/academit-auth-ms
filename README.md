@@ -45,6 +45,35 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+## Migraciones de base de datos
+
+El esquema de `academit_auth` lo definen las migraciones de `src/migrations/` y
+nada más. En producción el contenedor las aplica al arrancar, antes de atender
+peticiones; si una falla, el contenedor no arranca.
+
+`synchronize` está apagado contra MySQL, así que **cambiar una entidad no cambia
+la base**: hace falta la migración.
+
+```bash
+# Cambiar el esquema: toca la entidad y genera la migración
+$ npm run migration:generate -- src/migrations/NombreDelCambio
+
+# Revisa el SQL generado antes de aplicarlo
+$ npm run migration:run
+
+# Qué migraciones hay y cuáles están aplicadas
+$ npm run migration:show
+
+# Deshacer la última
+$ npm run migration:revert
+
+# ¿Coinciden las entidades con la base? (lo mismo que comprueba CI)
+$ npm run schema:drift
+```
+
+Si añades una entidad, regístrala en **los dos** sitios:
+`src/database/database.module.ts` y `src/database/data-source.ts`.
+
 ## Test
 
 ```bash

@@ -12,8 +12,36 @@ npx tsc --noEmit
 npm run start:prod
 ```
 
-Base `academit_auth` con `synchronize: true`: las tablas se crean solas desde las
-entidades. No hay migraciones.
+## Esquema de la base
+
+El esquema de `academit_auth` vive en `src/migrations/` y en ningún otro sitio.
+El entrypoint del contenedor las aplica al arrancar, así que **una entidad
+cambiada sin su migración no llega a la base**.
+
+Para cambiar el esquema:
+
+```bash
+# 1. Toca la entidad. 2. Genera la migración contra tu MySQL local:
+npm run migration:generate -- src/migrations/NombreDelCambio
+# 3. Revísala. 4. Aplícala:
+npm run migration:run
+# En cualquier momento, para ver si entidades y base coinciden:
+npm run schema:drift
+```
+
+Si añades una entidad, regístrala en **los dos** sitios: `database.module.ts` y
+`src/database/data-source.ts`.
+
+`synchronize` está atado al dialecto (`!isMySQL`), no a una variable de entorno.
+Contra MySQL está apagado y no hay forma de encenderlo por configuración: estuvo
+en `true` en producción, sobre la base que guarda las cuentas y sin copias de
+seguridad, decidiendo por su cuenta qué `ALTER` ejecutar en cada arranque. Quitar
+una propiedad de una entidad bastaba para que la columna desapareciera con sus
+datos dentro.
+
+Un job de CI (`.github/workflows/verificar-esquema.yml`) levanta un MySQL vacío,
+aplica las migraciones y falla si el esquema resultante no coincide con las
+entidades.
 
 ## Roles
 

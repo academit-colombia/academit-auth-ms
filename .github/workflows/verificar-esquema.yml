@@ -1,0 +1,80 @@
+name: Verificar esquema
+
+# El guardián que este servicio no tenía porque no le hacía falta.
+#
+# Mientras `synchronize: true` estuvo encendido, cualquier cambio de entidad se
+# propagaba solo a la base: olvidarse de la migración no tenía consecuencias
+# porque no había migraciones. Ese mismo automatismo era el problema —decidía por
+# su cuenta qué ALTER ejecutar sobre la base de las cuentas, y quitar una
+# propiedad se llevaba la columna con sus datos—, así que está apagado contra
+# MySQL.
+#
+# El precio de apagarlo es que ahora sí se puede olvidar la migración, y el
+# síntoma sería silencioso: consultas que fallan en producción contra una columna
+# que nunca se creó. Este job levanta un MySQL vacío, aplica las migraciones y
+# comprueba que el esquema resultante coincide con las entidades.
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  deriva:
+    name: Migraciones y entidades coinciden
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: verificacion
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -pverificacion --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DB_TYPE: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_USERNAME: root
+      DB_PASSWORD: verificacion
+      DB_DATABASE: academit_auth
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      # Con la misma colación que resources/db-init/00-databases.sql en
+      # academit-infra. `MYSQL_DATABASE` no sirve: crea la base con la colación
+      # por defecto del servidor (utf8mb4_0900_ai_ci en MySQL 8), y entonces
+      # cualquier tabla que no la declare sale distinta a la de producción.
+      - name: Crear la base como en producción
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -uroot -pverificacion -e \
+            "CREATE DATABASE IF NOT EXISTS \`academit_auth\` \
+             CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar
+        run: npm run build
+
+      # Sobre una base vacía: es el mismo camino que un entorno nuevo, así que
+      # además comprueba que las migraciones bastan para levantar el esquema
+      # desde cero, sin `synchronize` de por medio.
+      - name: Aplicar las migraciones
+        run: npm run migration:run
+
+      - name: Comprobar que no queda deriva
+        run: npm run schema:drift
