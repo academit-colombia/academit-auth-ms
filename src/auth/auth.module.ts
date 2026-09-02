@@ -14,15 +14,18 @@ import { PublicoController } from './publico.controller';
 import { KeyPair } from './entities/key-pair/key-pair';
 import { Usuario } from './entities/usuario/usuario.entity';
 import { CodigoVerificacion } from './entities/codigo/codigo-verificacion.entity';
+import { SolicitudCambioDatos } from './entities/solicitud-cambio-datos/solicitud-cambio-datos.entity';
 import { VerificacionService } from './verificacion.service';
 import { CorreoService } from './correo/correo.service';
 import { EncryptionService } from './encryption/encryption.service';
 import { JwtStrategy } from './jwt.strategy';
 import { InternoGuard } from './guards/interno.guard';
+import { SolicitudesDatosService } from './solicitudes-datos.service';
+import { SolicitudesDatosController } from './solicitudes-datos.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([KeyPair, Usuario, CodigoVerificacion]),
+    TypeOrmModule.forFeature([KeyPair, Usuario, CodigoVerificacion, SolicitudCambioDatos]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     MulterModule.register(multerConfigUsuarios),
     JwtModule.registerAsync({
@@ -44,12 +47,14 @@ import { InternoGuard } from './guards/interno.guard';
     EncryptionService,
     JwtStrategy,
     InternoGuard,
+    SolicitudesDatosService,
   ],
   controllers: [
     AuthController,
     UsuariosController,
     InternoController,
     PublicoController,
+    SolicitudesDatosController,
   ],
 })
 export class AuthModule {}

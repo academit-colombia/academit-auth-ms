@@ -34,6 +34,12 @@ export class UsuarioResponseDto {
   @ApiPropertyOptional({ example: '1020304050' })
   documentoIdentidad: string | null;
 
+  @ApiPropertyOptional({ example: 'Calle 10 # 20-30' })
+  direccion: string | null;
+
+  @ApiPropertyOptional({ example: '110111' })
+  codigoPostal: string | null;
+
   @ApiPropertyOptional({ enum: GeneroUsuario })
   genero: GeneroUsuario | null;
 
@@ -60,6 +66,8 @@ export class UsuarioResponseDto {
     this.paisResidencia = usuario.paisResidencia ?? null;
     this.ciudad = usuario.ciudad ?? null;
     this.documentoIdentidad = usuario.documentoIdentidad ?? null;
+    this.direccion = usuario.direccion ?? null;
+    this.codigoPostal = usuario.codigoPostal ?? null;
     this.genero = usuario.genero ?? null;
     this.biografia = usuario.biografia ?? null;
     this.rutaFoto = usuario.rutaFoto ?? null;

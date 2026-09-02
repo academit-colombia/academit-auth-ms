@@ -21,6 +21,30 @@ import { DatosPersonalesDto } from './dto/in/datos-personales.dto';
 
 const ROUNDS_BCRYPT = 10;
 
+/** Todos los campos personales, tocables por un administrador (crear/editar usuario). */
+const CAMPOS_PERSONALES_COMPLETOS: (keyof DatosPersonalesDto & keyof Usuario)[] = [
+  'nombre',
+  'telefono',
+  'fechaNacimiento',
+  'paisResidencia',
+  'ciudad',
+  'documentoIdentidad',
+  'genero',
+  'biografia',
+  'direccion',
+  'codigoPostal',
+];
+
+/**
+ * Campos que el propio usuario puede autoeditar. Nombre, fecha de nacimiento y
+ * documento de identidad quedan afuera a propósito: identifican a la persona
+ * real detrás de la cuenta, así que su cambio pasa por una solicitud que
+ * aprueba un administrador (ver `SolicitudesDatosService`), no por acá.
+ */
+const CAMPOS_AUTOEDITABLES = CAMPOS_PERSONALES_COMPLETOS.filter(
+  (campo) => !(['nombre', 'fechaNacimiento', 'documentoIdentidad'] as string[]).includes(campo),
+);
+
 @Injectable()
 export class UsuariosService implements OnModuleInit {
   private readonly logger = new Logger(UsuariosService.name);
@@ -92,18 +116,8 @@ export class UsuariosService implements OnModuleInit {
   private aplicarDatosPersonales(
     usuario: Usuario,
     dto: DatosPersonalesDto,
+    campos: (keyof DatosPersonalesDto & keyof Usuario)[] = CAMPOS_PERSONALES_COMPLETOS,
   ): void {
-    const campos: (keyof DatosPersonalesDto & keyof Usuario)[] = [
-      'nombre',
-      'telefono',
-      'fechaNacimiento',
-      'paisResidencia',
-      'ciudad',
-      'documentoIdentidad',
-      'genero',
-      'biografia',
-    ];
-
     campos.forEach((campo) => {
       const valor = dto[campo];
       if (valor === undefined) return;
@@ -279,14 +293,27 @@ export class UsuariosService implements OnModuleInit {
   /**
    * Edición del propio perfil. A diferencia de `actualizar`, no puede tocar el
    * rol, el estado de la cuenta ni el email: nadie se asciende a sí mismo.
+   *
+   * Para profesor y estudiante, tampoco puede tocar nombre, fecha de
+   * nacimiento ni documento de identidad: esos tres solo cambian mediante una
+   * solicitud aprobada por un administrador (`SolicitudesDatosService`). Si
+   * llegan en el body, se ignoran en silencio, igual que ya hace este método
+   * con `rol`/`activo`.
+   *
+   * El administrador es la excepción: es quien aprueba esas solicitudes para
+   * todos los demás, así que no tiene sentido pedirle que se apruebe a sí
+   * mismo — para él, estos tres campos se autoeditan igual que el resto.
    */
   async actualizarPerfil(
     idUsuario: number,
     dto: DatosPersonalesDto,
     foto?: Express.Multer.File,
+    rol?: RolUsuario,
   ): Promise<Usuario> {
     const usuario = await this.buscarPorId(idUsuario);
-    this.aplicarDatosPersonales(usuario, dto);
+    const campos =
+      rol === RolUsuario.ADMINISTRADOR ? CAMPOS_PERSONALES_COMPLETOS : CAMPOS_AUTOEDITABLES;
+    this.aplicarDatosPersonales(usuario, dto, campos);
     await this.aplicarFotografia(usuario, foto);
     return this.usuarioRepository.save(usuario);
   }

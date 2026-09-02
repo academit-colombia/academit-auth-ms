@@ -63,6 +63,12 @@ export class Usuario {
   @Column('varchar', { name: 'documento_identidad', length: 40, nullable: true })
   documentoIdentidad: string | null;
 
+  @Column('varchar', { name: 'direccion', length: 255, nullable: true })
+  direccion: string | null;
+
+  @Column('varchar', { name: 'codigo_postal', length: 20, nullable: true })
+  codigoPostal: string | null;
+
   @Column({
     type: 'enum',
     enum: GeneroUsuario,
