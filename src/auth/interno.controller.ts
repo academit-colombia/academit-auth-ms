@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { UsuariosService } from './usuarios.service';
@@ -38,6 +38,22 @@ export class InternoController {
       dto.nombre,
       dto.email,
     );
+    return new UsuarioResponseDto(usuario);
+  }
+
+  /**
+   * Ficha de un usuario por id.
+   *
+   * Lo llama griselda-backend para conseguir el email al que avisar cuando
+   * anula el intento de examen de un alumno (evaluaciones por sección): solo
+   * tiene el `sub` del JWT, que es este id, nunca el email en sus propias
+   * tablas.
+   */
+  @Get('usuarios/:id')
+  async usuario(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<UsuarioResponseDto> {
+    const usuario = await this.usuariosService.buscarPorId(id);
     return new UsuarioResponseDto(usuario);
   }
 }
