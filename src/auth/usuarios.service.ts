@@ -200,7 +200,10 @@ export class UsuariosService implements OnModuleInit {
 
     if (existente) {
       const usuario = await this.buscarPorId(existente.idUsuario);
-      usuario.nombre = dto.nombre;
+      // Además del nombre, el registro trae los datos de identificación
+      // (teléfono, documento, fecha de nacimiento, país, ciudad...): sin
+      // esto se perderían al convertir el lead en cuenta.
+      this.aplicarDatosPersonales(usuario, dto);
       usuario.rol = RolUsuario.ESTUDIANTE;
       usuario.activo = true;
       usuario.passwordHash = await bcrypt.hash(dto.password, ROUNDS_BCRYPT);
