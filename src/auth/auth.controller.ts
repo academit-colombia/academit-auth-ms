@@ -147,7 +147,7 @@ export class AuthController {
     @UploadedFile() fotografia?: Express.Multer.File,
   ): Promise<UsuarioResponseDto> {
     return new UsuarioResponseDto(
-      await this.usuariosService.actualizarPerfil(actual.sub, dto, fotografia),
+      await this.usuariosService.actualizarPerfil(actual.sub, dto, fotografia, actual.rol),
     );
   }
 

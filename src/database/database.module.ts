@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { KeyPair } from 'src/auth/entities/key-pair/key-pair';
 import { Usuario } from 'src/auth/entities/usuario/usuario.entity';
 import { CodigoVerificacion } from 'src/auth/entities/codigo/codigo-verificacion.entity';
+import { SolicitudCambioDatos } from 'src/auth/entities/solicitud-cambio-datos/solicitud-cambio-datos.entity';
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { CodigoVerificacion } from 'src/auth/entities/codigo/codigo-verificacion
             ? configService.get<string>('DB_PASSWORD')
             : undefined,
           database: configService.get<string>('DB_DATABASE'),
-          entities: [KeyPair, Usuario, CodigoVerificacion],
+          entities: [KeyPair, Usuario, CodigoVerificacion, SolicitudCambioDatos],
           /*
            * Contra MySQL —producción— apagado: el esquema lo construyen las
            * migraciones de src/migrations/, que el entrypoint aplica al arrancar

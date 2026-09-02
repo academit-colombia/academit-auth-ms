@@ -3,6 +3,7 @@ import * as dotenv from 'dotenv';
 import { KeyPair } from '../auth/entities/key-pair/key-pair';
 import { Usuario } from '../auth/entities/usuario/usuario.entity';
 import { CodigoVerificacion } from '../auth/entities/codigo/codigo-verificacion.entity';
+import { SolicitudCambioDatos } from '../auth/entities/solicitud-cambio-datos/solicitud-cambio-datos.entity';
 
 dotenv.config();
 
@@ -31,7 +32,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
-  entities: [KeyPair, Usuario, CodigoVerificacion],
+  entities: [KeyPair, Usuario, CodigoVerificacion, SolicitudCambioDatos],
   // En ejecución se cargan los .js compilados; con ts-node, los .ts del fuente.
   migrations: [__dirname + '/../migrations/*{.ts,.js}'],
   synchronize: false,

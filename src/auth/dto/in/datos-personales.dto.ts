@@ -57,6 +57,18 @@ export class DatosPersonalesDto {
   @MaxLength(40)
   documentoIdentidad?: string;
 
+  @ApiPropertyOptional({ description: 'Dirección de residencia', example: 'Calle 10 # 20-30' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  direccion?: string;
+
+  @ApiPropertyOptional({ description: 'Código postal', example: '110111' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  codigoPostal?: string;
+
   @ApiPropertyOptional({ description: 'Género', enum: GeneroUsuario })
   @IsOptional()
   @IsEnum(GeneroUsuario, { message: 'Género inválido' })
